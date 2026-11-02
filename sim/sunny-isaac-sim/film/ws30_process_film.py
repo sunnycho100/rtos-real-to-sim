@@ -3,6 +3,11 @@
 Usage (miniforge python3: numpy and Pillow; ffmpeg on PATH; fonts in fonts/, see README.md):
   python3 sim/sunny-isaac-sim/film/ws30_process_film.py [--station PATH] [--robots PATH]     # docs/evidence/process/process_film_v4.mp4
   python3 sim/sunny-isaac-sim/film/ws30_process_film.py --still 2 10 14 22                    # PNG stills next to the output
+  v5, the site cut (opens on the out camera; robots from the clean HQ door render, one shot from 10.1 s):
+    E=docs/evidence; python3 sim/sunny-isaac-sim/film/ws30_process_film.py --start 5 \
+      --station $E/ws30_station/ws30_human_alone_clean.mp4 --robots $E/door_team/v3c_hq/door_team_v3c_hq_clean.mp4 \
+      --robots-from 10.1 --robots-for 9.0 --out $E/process/process_film_v5.mp4
+    ws30_human_alone_clean.mp4 is ws30_human_alone.mp4 cropped past its text lines: crop=1049:590:115:90,scale=1280:720
 
 01 "Record the place": the CarDA WS30 in and out camera clips (docs/evidence/carda/ws30_real, CarDA, CC BY 4.0).
    These are CarDA's fixed cameras, standing in for a phone recording.
@@ -109,18 +114,19 @@ class Card:
         return self.img
 
 
-def source(path, card, seconds):
+def source(path, card, seconds, start=0.0):
     if path is None:
         return Card(placeholder(*card), seconds)
-    return Still(path, seconds) if Path(path).suffix.lower() in (".png", ".jpg", ".jpeg") else Clip(path)
+    return Still(path, seconds) if Path(path).suffix.lower() in (".png", ".jpg", ".jpeg") else Clip(path, start)
 
 
 class Film:
-    def __init__(self, station, robots):
+    def __init__(self, station, robots, robots_from=0.0, start=0.0, robots_max=ROBOTS_MAX):
+        self.t0 = start   # film time the cut opens on: 5.0 drops the in camera and opens on the out camera
         self.inc, self.outc = Clip(IN_CAM, IN_SRC), Clip(OUT_CAM, OUT_SRC - (FREEZE - XF1[0]))
         self.station = source(station, ("Rebuilt WS30 station in Isaac Sim", "placeholder: render from docs/evidence/ws30_station/"), ROBOTS0 - WIPE[0])
-        self.robots = source(robots, ("Robots doing the door job", "placeholder: door_team v2, or the human-alone clip"), ROBOTS_MAX)
-        self.end = ROBOTS0 + min(self.robots.duration, ROBOTS_MAX)
+        self.robots = source(robots, ("Robots doing the door job", "placeholder: door_team v2, or the human-alone clip"), ROBOTS_MAX, robots_from)
+        self.end = ROBOTS0 + min(self.robots.duration, robots_max)
         self.mono = {s: ImageFont.truetype(MONO, s) for s in (16, 15, 24)}
 
     def labels(self, img, t):
@@ -144,7 +150,7 @@ class Film:
 
     def caption(self, img, t):
         k = max(i for i, (t0, _) in enumerate(CAPTIONS) if t >= t0)
-        a = smooth(t, CAPTIONS[k][0], CAPTIONS[k][0] + 0.5) * smooth(t, 0.2, 0.7) * (1 - smooth(t, self.end - 0.6, self.end))
+        a = smooth(t, CAPTIONS[k][0], CAPTIONS[k][0] + 0.5) * smooth(t, self.t0 + 0.2, self.t0 + 0.7) * (1 - smooth(t, self.end - 0.6, self.end))
         shade = np.linspace(0, 1, 190)[:, None, None] ** 1.5 * 0.8  # bottom fade so the type reads over bright footage
         img[H - 190:] += shade * (np.array(BG, np.float32) - img[H - 190:])
         im = Image.fromarray(img.astype(np.uint8))
@@ -184,7 +190,7 @@ class Film:
             rb = self.robots.frame(round((t - ROBOTS0 + XF) * FPS))
             img = img + smooth(t, ROBOTS0 - XF, ROBOTS0) * (rb - img)
         img = self.caption(img, t)
-        img = np.array(BG) + (img - np.array(BG)) * smooth(t, 0, 0.5) * (1 - smooth(t, self.end - 0.5, self.end))
+        img = np.array(BG) + (img - np.array(BG)) * smooth(t, self.t0, self.t0 + 0.5) * (1 - smooth(t, self.end - 0.5, self.end))
         return np.clip(img, 0, 255).astype(np.uint8)
 
 
@@ -192,23 +198,26 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--station", help="Isaac Sim render of the rebuilt station (png, jpg or mp4)")
     ap.add_argument("--robots", help="the automated door clip, or the human-alone clip")
+    ap.add_argument("--robots-from", type=float, default=0.0, help="seconds into the robots clip to start from")
+    ap.add_argument("--robots-for", type=float, default=ROBOTS_MAX, help="seconds of robots after the crossfade (keep it inside one shot)")
+    ap.add_argument("--start", type=float, default=0.0, help="film time to open on (5.0 drops the in camera)")
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--still", type=float, nargs="*", help="write PNG stills at these seconds instead of the film")
     a = ap.parse_args()
-    film = Film(a.station, a.robots)
-    print(f"station: {a.station or 'placeholder'}, robots: {a.robots or 'placeholder'}, {film.end:.1f} s")
+    film = Film(a.station, a.robots, a.robots_from, a.start, a.robots_for)
+    print(f"station: {a.station or 'placeholder'}, robots: {a.robots or 'placeholder'}, {film.end - a.start:.1f} s")
     a.out.parent.mkdir(parents=True, exist_ok=True)
     if a.still:
         for t in a.still:
             p = a.out.with_name(f"v4_still_{t:05.2f}.png")
-            Image.fromarray(Film(a.station, a.robots).frame(t)).save(p)  # fresh readers: stills seek anywhere
+            Image.fromarray(Film(a.station, a.robots, a.robots_from, a.start, a.robots_for).frame(t)).save(p)  # fresh readers: stills seek anywhere
             print(p)
         return
     ff = subprocess.Popen(["ffmpeg", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS),
                            "-i", "-", "-c:v", "libx264", "-preset", "medium", "-crf", "23", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
                            str(a.out)], stdin=subprocess.PIPE)
-    for i in range(round(film.end * FPS)):
-        ff.stdin.write(film.frame(i / FPS).tobytes())
+    for i in range(round((film.end - a.start) * FPS)):
+        ff.stdin.write(film.frame(a.start + i / FPS).tobytes())
     ff.stdin.close(); ff.wait()
     print(a.out)
 
