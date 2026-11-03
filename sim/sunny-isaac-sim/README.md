@@ -24,9 +24,9 @@ Only one browser tab can be connected at a time. Dozens of `OmniHub: Hub encount
 
 | Port | Protocol | Purpose | Source |
 |---|---|---|---|
-| 8210 | TCP | Web viewer page | 207.110.225.211/32 |
-| 49100 | TCP | WebRTC signaling | 207.110.225.211/32 |
-| 47998 | UDP | WebRTC media | 207.110.225.211/32 |
+| 8210 | TCP | Web viewer page | YOUR_IP/32 |
+| 49100 | TCP | WebRTC signaling | YOUR_IP/32 |
+| 47998 | UDP | WebRTC media | YOUR_IP/32 |
 
 The streams have no password or encryption, so never open them to everyone. Brev's Launchable settings offer "only the deployer's IP" for exposed ports, and NVIDIA's Isaac Sim Brev guide says to expose these three only to your IP. Unverified: Brev's docs don't show the port form on an existing instance's Access tab, so check there for a source IP field.
 
@@ -34,8 +34,8 @@ If the instance page can only open ports to all IPs, restrict them on the VM ins
 
 ```bash
 sudo ufw allow 22/tcp
-sudo ufw allow from 207.110.225.211 to any port 8210,49100 proto tcp
-sudo ufw allow from 207.110.225.211 to any port 47998 proto udp
+sudo ufw allow from YOUR_IP to any port 8210,49100 proto tcp
+sudo ufw allow from YOUR_IP to any port 47998 proto udp
 sudo ufw --force enable
 ```
 
