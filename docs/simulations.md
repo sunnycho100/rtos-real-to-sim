@@ -44,7 +44,7 @@ Where it ran: **Brev** is the NVIDIA Brev L40S VM, **Colab** a Colab L4, **Mac**
 | Simulation | What it shows | Result | Ran on | Code | Video |
 |---|---|---|---|---|---|
 | G1 carries and duo (Seohee) | G1 and Go1 on published walking policies talking through signed MQTT requests: a WASD G1, a leader and follower duo, a two-G1 cooperative lift, two RoboCasa houses. | See the folder's README. | Mac | `sim/mujoco_houses/` | |
-| 20-robot factory (Seohee, PR 10) | Six G1s, four arm cells, a two-arm panel, six couriers and two Spots in roqsim's Depot warehouse, with a production scheduler. | Her own checks pass. Under review in PR 10. | Mac, Brev | branch `g1_cooperative_task` | her video |
+| 20-robot factory (Seohee) | Six G1s, four arm cells, a two-arm panel, six couriers and two Spots in roqsim's Depot warehouse, with a production scheduler. | Her own checks pass. Merged in PRs 10 and 12. | Mac, Brev | `sim/mujoco_houses/factory/` | her video |
 | That factory in Isaac Sim | Her MuJoCo run replayed in Isaac Sim's RTX renderer: the USD is built from her compiled model (4,513 geoms, 13 textures) and every body follows her recorded poses. | 39 s video. Visual port only: MuJoCo decides all motion. The USD is on the VM at `~/robot/g1coop/usd/factory.usd`. | Brev | `sim/sunny-isaac-sim/g1coop_port/` | `g1coop_port/g1coop_factory.mp4` |
 | G1 manipulation (Sam) | Articulated G1 with grippers, balance, arm IK and camera-guided manipulation. | See its review doc. | Mac | `sim/sam-g1-manipulation/` | |
 

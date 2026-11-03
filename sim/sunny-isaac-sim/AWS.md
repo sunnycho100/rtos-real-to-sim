@@ -48,11 +48,11 @@ git clone https://github.com/Winston-Gu/CooHOI.git ~/CooHOI && git -C ~/CooHOI c
 
 ## The factory render
 
-The factory USD only exists on the Brev VM (`~/robot/g1coop/usd/factory.usd`). Copy that folder to `~/robot/g1coop/usd/` if the Brev VM still exists. Otherwise rebuild it from Seohee's branch (steps from her `factory/SETUP.md`; unverified on this AMI's Python 3.12):
+The factory USD only exists on the Brev VM (`~/robot/g1coop/usd/factory.usd`). Copy that folder to `~/robot/g1coop/usd/` if the Brev VM still exists. Otherwise rebuild it from Seohee's factory on main (steps from her `factory/SETUP.md`; unverified on this AMI's Python 3.12):
 
 ```bash
 sudo apt-get install -y zsh python3-venv ffmpeg
-git clone --depth 1 -b g1_cooperative_task https://github.com/sunnycho100/robot-trust-network ~/g1coop-src
+git clone --depth 1 https://github.com/sunnycho100/rtos-real-to-sim ~/g1coop-src
 cd ~/g1coop-src/sim/mujoco_houses
 python3 -m venv .venv && .venv/bin/pip install -r requirements-factory.txt usd-core
 ./scripts/fetch_assets
